@@ -7,8 +7,10 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.filter.CharacterEncodingFilter;
+import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
+import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import web.interceptor.AuthenticationInterceptor;
 
 import javax.servlet.Filter;
@@ -22,6 +24,11 @@ public class WebConfig extends WebMvcConfigurationSupport {
 
     public static final String COOKIE_NAME = "MSA_COOKIE";
     public static final String TEST_COOKIE_VALUE = "abcdefg";
+
+    @Bean
+    public ViewResolver internalViewResolver() {
+        return new InternalResourceViewResolver();
+    }
 
     @Override
     protected void addInterceptors(InterceptorRegistry registry) {

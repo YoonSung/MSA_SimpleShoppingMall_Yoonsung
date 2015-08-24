@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>JS Bin</title>
+</head>
+<body>
+  <input type="text"/>
+  <button id="search">검색</button>
+  <table border=1>
+    <tr id="">
+      <td>id</td>
+      <td>name</td>
+      <td>cost</td>
+      <td></td>
+    </tr>
+    <tbody id="asd">
+    </tbody>
+  </table>
+</body>  
+<script type="text/javascript">
+  
+  var btn = document.getElementById("search");
+  
+  btn.addEventListener("click", function(e) {
+    
+    xmlhttp=new XMLHttpRequest();
+    xmlhttp.onreadystatechange= function() {
+      var list = JSON.parse(xmlhttp.responseText);
+      
+      var template = document.getElementById("template");
+      
+      var length = list.length;
+      var i = 0;
+      var listString = "";
+      for(i ; i< length ; ++i) {
+        var cloned = template.innerText;
+        var item = list[i];
+        cloned = cloned.replace("${id}", item.id);
+        cloned = cloned.replace("${id}", item.id);
+        cloned = cloned.replace("${name}", item.name);
+        cloned = cloned.replace("${cost}", item.cost);
+
+        listString += cloned;
+      }
+      
+      var tbody = document.getElementById("asd");
+      tbody.innerHTML = listString;
+    }
+    xmlhttp.open("GET","http://192.168.5.181:9000/goods",true);
+    xmlhttp.send();
+  });
+</script>
+<script id="template" type="text/template">
+<tr>
+    <td>${id}</td>
+    <td>${name}</td>
+    <td>${cost}</td>
+    <td><a href="http://192.168.5.181:9000/basket/${id}">장바구니 추가</a></td>
+  </tr>
+</script>
+</html>
