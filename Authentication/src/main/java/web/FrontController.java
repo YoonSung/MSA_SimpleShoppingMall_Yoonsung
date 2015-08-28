@@ -51,7 +51,7 @@ public class FrontController {
         try {
             _authenticate(request, response, session);
         } catch (IOException e) {
-            e.printStackTrace();gi
+            e.printStackTrace();
         }
 
         return "";
