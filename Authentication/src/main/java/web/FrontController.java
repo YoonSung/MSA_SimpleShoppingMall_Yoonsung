@@ -35,7 +35,6 @@ public class FrontController {
     private final String password = "password";
     private final String realm = "slipp-study-msa";
 
-
     @RequestMapping(value = "/index")
     public @ResponseBody String index() {
         return "INDEX";
@@ -77,54 +76,63 @@ public class FrontController {
         // Initial Request
         if (StringUtils.isEmpty(authHeader)) {
             loginRequest(response, session);
+            return;
+        }
+
+        if (!authHeader.startsWith("Digest")) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, " This Service only supports Digest Authorization");
+            return;
+        }
+
+        //TODO getUserData from User Server
+
+        // parse the values of the Authentication header into a hashmap
+        HashMap<String, String> headerValues = parseHeader(authHeader);
+        String method = request.getMethod();
+        String ha1 = DigestUtils.md5DigestAsHex((userName + ":" + realm + ":" + password).getBytes());
+        String ha2;
+        //quality of protection. 보호수준
+        String qop = headerValues.get("qop");
+        String reqURI = headerValues.get("uri");
+
+        log.debug("qop : {}", qop);
+        log.debug("ha1 : {}", ha1);
+        log.debug("reqURI : {}", reqURI);
+
+        // auth int면 메시지 무결성 보호가 적용, 계산되는 엔티티 본문은 메시지 본문의 해시가 아닌 엔티티 본문의 해시
+        if (!StringUtils.isEmpty(qop) && qop.equals("auth-int")) {
+            String entityBodyMd5 = DigestUtils.md5DigestAsHex(requestBody.getBytes());
+            ha2 = DigestUtils.md5DigestAsHex((method + ":" + reqURI + ":" + entityBodyMd5).getBytes());
 
         } else {
-
-            if (!authHeader.startsWith("Digest")) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, " This Service only supports Digest Authorization");
-            }
-
-            // parse the values of the Authentication header into a hashmap
-            HashMap<String, String> headerValues = parseHeader(authHeader);
-            String method = request.getMethod();
-            String ha1 = DigestUtils.md5DigestAsHex((userName + ":" + realm + ":" + password).getBytes());
-            String ha2;
-            //quality of protection. 보호수준
-            String qop = headerValues.get("qop");
-            String reqURI = headerValues.get("uri");
-
-            log.debug("qop : {}", qop);
-            log.debug("ha1 : {}", ha1);
-            log.debug("reqURI : {}", reqURI);
-
-            // auth int면 메시지 무결성 보호가 적용, 계산되는 엔티티 본문은 메시지 본문의 해시가 아닌 엔티티 본문의 해시
-            if (!StringUtils.isEmpty(qop) && qop.equals("auth-int")) {
-                String entityBodyMd5 = DigestUtils.md5DigestAsHex(requestBody.getBytes());
-                ha2 = DigestUtils.md5DigestAsHex((method + ":" + reqURI + ":" + entityBodyMd5).getBytes());
-
-            } else {
-                ha2 = DigestUtils.md5DigestAsHex((method + ":" + reqURI).getBytes());
-            }
-
-            String serverResponse;
-            String nonce = getNonceFromSession(session);
-            if (StringUtils.isEmpty(qop)) {
-                serverResponse = DigestUtils.md5DigestAsHex((ha1 + ":" + nonce + ":" + ha2).getBytes());
-
-            } else {
-                String nonceCount = headerValues.get("nc");
-                String clientNonce = headerValues.get("cnonce");
-
-                serverResponse = DigestUtils.md5DigestAsHex((ha1 + ":" + nonce + ":"
-                        + nonceCount + ":" + clientNonce + ":" + qop + ":" + ha2).getBytes());
-
-            }
-            String clientResponse = headerValues.get("response");
-
-            if (!serverResponse.equals(clientResponse)) {
-                loginRequest(response, session);
-            }
+            ha2 = DigestUtils.md5DigestAsHex((method + ":" + reqURI).getBytes());
         }
+
+        String serverResponse;
+        String nonce = getNonceFromSession(session);
+        if (StringUtils.isEmpty(qop)) {
+            serverResponse = DigestUtils.md5DigestAsHex((ha1 + ":" + nonce + ":" + ha2).getBytes());
+
+        } else {
+            String nonceCount = headerValues.get("nc");
+            String clientNonce = headerValues.get("cnonce");
+
+            serverResponse = DigestUtils.md5DigestAsHex((ha1 + ":" + nonce + ":"
+                    + nonceCount + ":" + clientNonce + ":" + qop + ":" + ha2).getBytes());
+
+        }
+        String clientResponse = headerValues.get("response");
+
+        if (serverResponse.equals(clientResponse))
+            loginSuccess(request, response);
+        else
+            loginRequest(response, session);
+    }
+
+    private void loginSuccess(HttpServletRequest request, HttpServletResponse response) {
+        String ipAddress = request.getHeader("Remote_Addr");
+
+
     }
 
     private String getNonceFromSession(HttpSession session) {
@@ -214,36 +222,4 @@ public class FrontController {
     private String getOpaque(String domain, String nonce) {
         return DigestUtils.md5DigestAsHex((domain + nonce).getBytes());
     }
-
-/*
-    @RequestMapping(value = "/", method = RequestMethod.POST)
-    public @ResponseBody String getJWTToken(@RequestBody String parameter) {
-
-
-
-        log.debug("parameter : " + parameter);
-
-        try {
-            Key key = new AesKey(ByteUtil.randomBytes(16));
-            String format = key.getFormat();
-            System.out.println("key : "+format);
-            JsonWebEncryption jwe = new JsonWebEncryption();
-            jwe.setPayload("Hello World!");
-            jwe.setAlgorithmHeaderValue(KeyManagementAlgorithmIdentifiers.A128KW);
-            jwe.setEncryptionMethodHeaderParameter(ContentEncryptionAlgorithmIdentifiers.AES_128_CBC_HMAC_SHA_256);
-            jwe.setKey(key);
-            String serializedJwe = null;
-            serializedJwe = jwe.getCompactSerialization();
-            System.out.println("Serialized Encrypted JWE: " + serializedJwe);
-            jwe = new JsonWebEncryption();
-            jwe.setKey(key);
-            jwe.setCompactSerialization(serializedJwe);
-            System.out.println("Payload: " + jwe.getPayload());
-        } catch (JoseException e) {
-            e.printStackTrace();
-        }
-
-        return "ROOT Request";
-    }
-*/
 }
