@@ -1,30 +1,26 @@
 package web;
 
-import com.google.gson.Gson;
-import org.jose4j.jwe.ContentEncryptionAlgorithmIdentifiers;
-import org.jose4j.jwe.JsonWebEncryption;
-import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
-import org.jose4j.keys.AesKey;
-import org.jose4j.lang.ByteUtil;
-import org.jose4j.lang.JoseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.Assert;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.io.*;
-import java.security.Key;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.HashMap;
+import java.util.Random;
 
 /**
  * Created by yoon on 15. 8. 5..
@@ -34,93 +30,107 @@ public class FrontController {
 
     Logger log = LoggerFactory.getLogger(FrontController.class);
 
-    @Autowired
-    RestTemplate restTemplate;
-
-    @Autowired
-    Gson gson;
-
-    private String authMethod = "auth";
-    private String userName = "usm";
-    private String password = "password";
-    private String realm = "slipp-study-msa";
-    public String nonce;
+    private final String authMethod = "auth";
+    private final String userName = "usm";
+    private final String password = "password";
+    private final String realm = "slipp-study-msa";
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
-    public @ResponseBody String authenticate(HttpServletRequest request,  HttpServletResponse response, HttpSession session) {
+    public @ResponseBody String authenticate(HttpServletRequest request,  HttpServletResponse response, HttpSession session) throws IOException {
         try {
             _authenticate(request, response, session);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.error("Authenticate Error : {}", e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
 
-        return "";
+        return "SUCCESS";
     }
 
     private void _authenticate(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws IOException {
         String requestBody = readRequestBody(request);
-
         String authHeader = request.getHeader("Authorization");
-        log.info("authHeader :{}", authHeader);
+        log.debug("authHeader :{}", authHeader);
+
+
+        // Initial Request
         if (StringUtils.isEmpty(authHeader)) {
-            response.addHeader("WWW-Authenticate", getAuthenticateHeader());
+            String nonce = generateNonce();
+            session.setAttribute("nonce", nonce);
+            response.addHeader("WWW-Authenticate", getAuthenticateHeader(nonce));
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         } else {
-            if (authHeader.startsWith("Digest")) {
-                // parse the values of the Authentication header into a hashmap
-                HashMap<String, String> headerValues = parseHeader(authHeader);
 
-                String method = request.getMethod();
-
-                String ha1 = DigestUtils.md5DigestAsHex((userName + ":" + realm + ":" + password).getBytes());
-
-                //quality of protection. 서버에서 적용가능한 리스트 기록
-                String qop = headerValues.get("qop");
-
-                String ha2;
-
-                String reqURI = headerValues.get("uri");
-
-                log.info("qop : {}", qop);
-                log.info("ha1 : {}", ha1);
-                log.info("reqURI : {}", reqURI);
-
-                if (!StringUtils.isEmpty(qop) && qop.equals("auth-int")) {
-                    log.info("here : 1");
-                    String entityBodyMd5 = DigestUtils.md5DigestAsHex(requestBody.getBytes());
-                    ha2 = DigestUtils.md5DigestAsHex((method + ":" + reqURI + ":" + entityBodyMd5).getBytes());
-                } else {
-                    log.info("here : 2");
-                    ha2 = DigestUtils.md5DigestAsHex((method + ":" + reqURI).getBytes());
-                }
-                ha2 = DigestUtils.md5DigestAsHex((method + ":" + reqURI).getBytes());
-
-                String serverResponse;
-
-                if (StringUtils.isEmpty(qop)) {
-                    serverResponse = DigestUtils.md5DigestAsHex((ha1 + ":" + nonce + ":" + ha2).getBytes());
-
-                } else {
-                    String domain = headerValues.get("realm");
-
-                    String nonceCount = headerValues.get("nc");
-                    String clientNonce = headerValues.get("cnonce");
-
-                    serverResponse = DigestUtils.md5DigestAsHex((ha1 + ":" + nonce + ":"
-                            + nonceCount + ":" + clientNonce + ":" + qop + ":" + ha2).getBytes());
-
-                }
-                String clientResponse = headerValues.get("response");
-
-                if (!serverResponse.equals(clientResponse)) {
-                    response.addHeader("WWW-Authenticate", getAuthenticateHeader());
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-                }
-            } else {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, " This Servlet only supports Digest Authorization");
+            if (!authHeader.startsWith("Digest")) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, " This Service only supports Digest Authorization");
             }
 
+
+            // parse the values of the Authentication header into a hashmap
+            HashMap<String, String> headerValues = parseHeader(authHeader);
+            String method = request.getMethod();
+            String ha1 = DigestUtils.md5DigestAsHex((userName + ":" + realm + ":" + password).getBytes());
+            String ha2;
+            //quality of protection. 보호수준
+            String qop = headerValues.get("qop");
+            String reqURI = headerValues.get("uri");
+
+            log.debug("qop : {}", qop);
+            log.debug("ha1 : {}", ha1);
+            log.debug("reqURI : {}", reqURI);
+
+            // auth int면 메시지 무결성 보호가 적용, 계산되는 엔티티 본문은 메시지 본문의 해시가 아닌 엔티티 본문의 해시
+            if (!StringUtils.isEmpty(qop) && qop.equals("auth-int")) {
+                String entityBodyMd5 = DigestUtils.md5DigestAsHex(requestBody.getBytes());
+                ha2 = DigestUtils.md5DigestAsHex((method + ":" + reqURI + ":" + entityBodyMd5).getBytes());
+
+            } else {
+                ha2 = DigestUtils.md5DigestAsHex((method + ":" + reqURI).getBytes());
+            }
+
+            String serverResponse;
+            String nonce = getNonceFromSession(session);
+            if (StringUtils.isEmpty(qop)) {
+                serverResponse = DigestUtils.md5DigestAsHex((ha1 + ":" + nonce + ":" + ha2).getBytes());
+
+            } else {
+                String nonceCount = headerValues.get("nc");
+                String clientNonce = headerValues.get("cnonce");
+
+                serverResponse = DigestUtils.md5DigestAsHex((ha1 + ":" + nonce + ":"
+                        + nonceCount + ":" + clientNonce + ":" + qop + ":" + ha2).getBytes());
+
+            }
+            String clientResponse = headerValues.get("response");
+
+            if (!serverResponse.equals(clientResponse)) {
+                response.addHeader("WWW-Authenticate", getAuthenticateHeader(nonce));
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            }
         }
+    }
+
+    private String getNonceFromSession(HttpSession session) {
+        Assert.notNull(session);
+
+        Object object = session.getAttribute("nonce");
+        if (object == null)
+            throw new IllegalArgumentException("nonce is not set");
+
+        return object.toString();
+    }
+
+    private String generateNonce() {
+        byte[] nonce = new byte[16];
+        Random rand = null;
+        try {
+            rand = SecureRandom.getInstance("SHA1PRNG");
+            rand.nextBytes(nonce);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        return nonce.toString();
     }
 
     private String readRequestBody(HttpServletRequest request) throws IOException {
@@ -151,11 +161,11 @@ public class FrontController {
             }
         }
         String body = stringBuilder.toString();
-        log.info("body : {}", body);
+        log.debug("body : {}", body);
         return body;
     }
 
-    private String getAuthenticateHeader() {
+    private String getAuthenticateHeader(String nonce) {
         String header = "";
 
         header += "Digest realm=\"" + realm + "\",";
@@ -194,7 +204,7 @@ public class FrontController {
 
 
 
-        log.info("parameter : " + parameter);
+        log.debug("parameter : " + parameter);
 
         try {
             Key key = new AesKey(ByteUtil.randomBytes(16));
