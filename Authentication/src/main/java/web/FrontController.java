@@ -35,16 +35,37 @@ public class FrontController {
     private final String password = "password";
     private final String realm = "slipp-study-msa";
 
+
+    @RequestMapping(value = "/index")
+    public @ResponseBody String index() {
+        return "INDEX";
+    }
+
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public @ResponseBody String authenticate(HttpServletRequest request,  HttpServletResponse response, HttpSession session) throws IOException {
+
         try {
             _authenticate(request, response, session);
         } catch (Exception e) {
             log.error("Authenticate Error : {}", e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            loginRequest(response, session);
         }
 
         return "SUCCESS";
+    }
+
+    @RequestMapping(value = "/logout")
+    public @ResponseBody String logout(HttpSession session) {
+        session.invalidate();
+
+        return "LOGOUT";
+    }
+
+    private void loginRequest(HttpServletResponse response,  HttpSession session) throws IOException {
+        String nonce = generateNonce();
+        session.setAttribute("nonce", nonce);
+        response.addHeader("WWW-Authenticate", getAuthenticateHeader(nonce));
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
     }
 
     private void _authenticate(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws IOException {
@@ -55,16 +76,13 @@ public class FrontController {
 
         // Initial Request
         if (StringUtils.isEmpty(authHeader)) {
-            String nonce = generateNonce();
-            session.setAttribute("nonce", nonce);
-            response.addHeader("WWW-Authenticate", getAuthenticateHeader(nonce));
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            loginRequest(response, session);
+
         } else {
 
             if (!authHeader.startsWith("Digest")) {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, " This Service only supports Digest Authorization");
             }
-
 
             // parse the values of the Authentication header into a hashmap
             HashMap<String, String> headerValues = parseHeader(authHeader);
@@ -104,8 +122,7 @@ public class FrontController {
             String clientResponse = headerValues.get("response");
 
             if (!serverResponse.equals(clientResponse)) {
-                response.addHeader("WWW-Authenticate", getAuthenticateHeader(nonce));
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                loginRequest(response, session);
             }
         }
     }
