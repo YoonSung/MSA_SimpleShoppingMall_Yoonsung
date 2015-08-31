@@ -9,6 +9,7 @@ import org.jose4j.lang.JoseException;
 import org.junit.Test;
 
 import java.security.Key;
+import java.util.Base64;
 
 /**
  * Created by yoon on 15. 8. 29..
@@ -35,7 +36,6 @@ public class JWTTokenTest {
             jwe.setCompactSerialization(serializedJwe);
             System.out.println("Payload: " + jwe.getPayload());
 
-            System.out.println(jwe.getCompactSerialization());
         } catch (JoseException e) {
             e.printStackTrace();
         }
