@@ -20,7 +20,7 @@ import org.springframework.web.client.RestTemplate;
 @SpringApplicationConfiguration(classes = UserApplication.class)
 @WebIntegrationTest(randomPort = true)
 public class FrontControllerTest{
-
+/*
     @Value("${local.server.port}")
     private String targetPort;
 
@@ -42,4 +42,5 @@ public class FrontControllerTest{
         restTemplate.postForEntity(targetUrl +":"+targetPort, requestEntity, String.class);
 //        restTemplate.getForEntity(targetUrl + ":" + targetPort, String.class, requestEntity, String.class);
     }
+    */
 }

@@ -40,7 +40,6 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-security")
     compile("org.springframework.boot:spring-boot-starter-web")
     compile("com.google.code.gson:gson")
-    compile('org.bitbucket.b_c:jose4j:0.4.4')
     runtime("com.h2database:h2")
     testCompile("org.springframework.boot:spring-boot-starter-test")
     testCompile("junit:junit:4.12")
