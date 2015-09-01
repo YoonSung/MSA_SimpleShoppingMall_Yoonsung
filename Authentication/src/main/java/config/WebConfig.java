@@ -1,5 +1,9 @@
 package config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jose4j.keys.AesKey;
+import org.jose4j.lang.ByteUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +14,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupp
 import web.interceptor.AuthenticationInterceptor;
 
 import javax.servlet.Filter;
+import java.security.Key;
 
 /**
  * Created by yoon on 15. 8. 5..
@@ -34,10 +39,20 @@ public class WebConfig extends WebMvcConfigurationSupport {
     }
 
     @Bean
+    public Key secretKey() {
+        return new AesKey(ByteUtil.randomBytes(16));
+    }
+
+    @Bean
     public Filter characterEncodingFilter() {
         CharacterEncodingFilter characterEncodingFilter = new CharacterEncodingFilter();
         characterEncodingFilter.setEncoding("UTF-8");
         characterEncodingFilter.setForceEncoding(true);
         return characterEncodingFilter;
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 }

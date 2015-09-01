@@ -1,14 +1,11 @@
 package web;
 
 import config.AuthenticationApplication;
-import junit.framework.TestCase;
 import org.junit.Before;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -35,12 +32,5 @@ public class FrontControllerTest{
         restTemplate = new RestTemplate();
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-    }
-
-    @Test
-    public void 회원가입_테스트() {
-        HttpEntity<String> requestEntity = new HttpEntity<String>("parameter", headers);
-        restTemplate.postForEntity(targetUrl +":"+targetPort, requestEntity, String.class);
-//        restTemplate.getForEntity(targetUrl + ":" + targetPort, String.class, requestEntity, String.class);
     }
 }

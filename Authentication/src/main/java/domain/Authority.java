@@ -13,11 +13,6 @@ public class Authority {
         Admin;
     }
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
     private Type type;
 }
