@@ -1,25 +1,20 @@
 package web;
 
+import domain.Authentication;
+import exception.DigestAuthenticationRequiredException;
+import exception.LoginRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.Assert;
-import org.springframework.util.DigestUtils;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
+import util.DigestAnalyser;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.HashMap;
 import java.util.Random;
 
 /**
@@ -30,24 +25,21 @@ public class FrontController {
 
     Logger log = LoggerFactory.getLogger(FrontController.class);
 
-    private final String authMethod = "auth";
-    private final String userName = "usm";
-    private final String password = "password";
-    private final String realm = "slipp-study-msa";
-
     @RequestMapping(value = "/index")
     public @ResponseBody String index() {
         return "INDEX";
     }
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
-    public @ResponseBody String authenticate(HttpServletRequest request,  HttpServletResponse response, HttpSession session) throws IOException {
+    public @ResponseBody String authenticate(@CookieValue(value = "auth", required = false, defaultValue = ValueConstants.DEFAULT_NONE) String token,
+                                                HttpServletRequest request,
+                                                HttpServletResponse response,
+                                                HttpSession session) throws IOException {
 
-        try {
-            _authenticate(request, response, session);
-        } catch (Exception e) {
-            log.error("Authenticate Error : {}", e);
-            loginRequest(response, session);
+        if (token == null) {
+            authenticateByUserInput(request, response, session);
+        } else {
+            authenticateByToken(token);
         }
 
         return "SUCCESS";
@@ -60,89 +52,48 @@ public class FrontController {
         return "LOGOUT";
     }
 
-    private void loginRequest(HttpServletResponse response,  HttpSession session) throws IOException {
+    private void authenticateByToken(String token) {
+
+    }
+
+    private void authenticateByUserInput(HttpServletRequest request, HttpServletResponse response, HttpSession session) {
+        try {
+            DigestAnalyser digestAnalyser = new DigestAnalyser(request, response, session, new Authentication("usm", "password"));
+            if (digestAnalyser.isValidAccess())
+                loginSuccess();
+            else
+                loginFail();
+
+
+        } catch (DigestAuthenticationRequiredException e) {
+            try {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, " This Service only supports Digest Authorization");
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+        } catch (LoginRequestException e) {
+            loginRequest(response, session);
+        }
+    }
+
+    private void loginSuccess() {
+
+    }
+
+    private void loginFail() {
+
+    }
+
+    private void loginRequest(HttpServletResponse response,  HttpSession session) {
         String nonce = generateNonce();
         session.setAttribute("nonce", nonce);
-        response.addHeader("WWW-Authenticate", getAuthenticateHeader(nonce));
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-    }
-
-    private void _authenticate(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws IOException {
-        String requestBody = readRequestBody(request);
-        String authHeader = request.getHeader("Authorization");
-        log.debug("authHeader :{}", authHeader);
-
-
-        // Initial Request
-        if (StringUtils.isEmpty(authHeader)) {
-            loginRequest(response, session);
-            return;
+        response.addHeader("WWW-Authenticate", DigestAnalyser.getAuthenticateHeader(nonce));
+        try {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+        } catch (Exception e) {
+            log.error("response set error : {}", e);
+            e.printStackTrace();
         }
-
-        if (!authHeader.startsWith("Digest")) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, " This Service only supports Digest Authorization");
-            return;
-        }
-
-        //TODO getUserData from User Server
-
-        // parse the values of the Authentication header into a hashmap
-        HashMap<String, String> headerValues = parseHeader(authHeader);
-        String method = request.getMethod();
-        String ha1 = DigestUtils.md5DigestAsHex((userName + ":" + realm + ":" + password).getBytes());
-        String ha2;
-        //quality of protection. 보호수준
-        String qop = headerValues.get("qop");
-        String reqURI = headerValues.get("uri");
-
-        log.debug("qop : {}", qop);
-        log.debug("ha1 : {}", ha1);
-        log.debug("reqURI : {}", reqURI);
-
-        // auth int면 메시지 무결성 보호가 적용, 계산되는 엔티티 본문은 메시지 본문의 해시가 아닌 엔티티 본문의 해시
-        if (!StringUtils.isEmpty(qop) && qop.equals("auth-int")) {
-            String entityBodyMd5 = DigestUtils.md5DigestAsHex(requestBody.getBytes());
-            ha2 = DigestUtils.md5DigestAsHex((method + ":" + reqURI + ":" + entityBodyMd5).getBytes());
-
-        } else {
-            ha2 = DigestUtils.md5DigestAsHex((method + ":" + reqURI).getBytes());
-        }
-
-        String serverResponse;
-        String nonce = getNonceFromSession(session);
-        if (StringUtils.isEmpty(qop)) {
-            serverResponse = DigestUtils.md5DigestAsHex((ha1 + ":" + nonce + ":" + ha2).getBytes());
-
-        } else {
-            String nonceCount = headerValues.get("nc");
-            String clientNonce = headerValues.get("cnonce");
-
-            serverResponse = DigestUtils.md5DigestAsHex((ha1 + ":" + nonce + ":"
-                    + nonceCount + ":" + clientNonce + ":" + qop + ":" + ha2).getBytes());
-
-        }
-        String clientResponse = headerValues.get("response");
-
-        if (serverResponse.equals(clientResponse))
-            loginSuccess(request, response);
-        else
-            loginRequest(response, session);
-    }
-
-    private void loginSuccess(HttpServletRequest request, HttpServletResponse response) {
-        String ipAddress = request.getHeader("Remote_Addr");
-
-
-    }
-
-    private String getNonceFromSession(HttpSession session) {
-        Assert.notNull(session);
-
-        Object object = session.getAttribute("nonce");
-        if (object == null)
-            throw new IllegalArgumentException("nonce is not set");
-
-        return object.toString();
     }
 
     private String generateNonce() {
@@ -156,70 +107,5 @@ public class FrontController {
         }
 
         return nonce.toString();
-    }
-
-    private String readRequestBody(HttpServletRequest request) throws IOException {
-        StringBuilder stringBuilder = new StringBuilder();
-        BufferedReader bufferedReader = null;
-        try {
-            InputStream inputStream = request.getInputStream();
-            if (inputStream != null) {
-                bufferedReader = new BufferedReader(new InputStreamReader(
-                        inputStream));
-                char[] charBuffer = new char[128];
-                int bytesRead = -1;
-                while ((bytesRead = bufferedReader.read(charBuffer)) > 0) {
-                    stringBuilder.append(charBuffer, 0, bytesRead);
-                }
-            } else {
-                stringBuilder.append("");
-            }
-        } catch (IOException ex) {
-            throw ex;
-        } finally {
-            if (bufferedReader != null) {
-                try {
-                    bufferedReader.close();
-                } catch (IOException ex) {
-                    throw ex;
-                }
-            }
-        }
-        String body = stringBuilder.toString();
-        log.debug("body : {}", body);
-        return body;
-    }
-
-    private String getAuthenticateHeader(String nonce) {
-        String header = "";
-
-        header += "Digest realm=\"" + realm + "\",";
-        if (!StringUtils.isEmpty(authMethod)) {
-            header += "qop=" + authMethod + ",";
-        }
-        header += "nonce=\"" + nonce + "\",";
-        //보호품질 코드
-        header += "opaque=\"" + getOpaque(realm, nonce) + "\"";
-
-        return header;
-    }
-
-    private HashMap<String, String> parseHeader(String headerString) {
-        // seperte out the part of the string which tells you which Auth scheme is it
-        String headerStringWithoutScheme = headerString.substring(headerString.indexOf(" ") + 1).trim();
-        HashMap<String, String> values = new HashMap<String, String>();
-        String keyValueArray[] = headerStringWithoutScheme.split(",");
-        for (String keyval : keyValueArray) {
-            if (keyval.contains("=")) {
-                String key = keyval.substring(0, keyval.indexOf("="));
-                String value = keyval.substring(keyval.indexOf("=") + 1);
-                values.put(key.trim(), value.replaceAll("\"", "").trim());
-            }
-        }
-        return values;
-    }
-
-    private String getOpaque(String domain, String nonce) {
-        return DigestUtils.md5DigestAsHex((domain + nonce).getBytes());
     }
 }
