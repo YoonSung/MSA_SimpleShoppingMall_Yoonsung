@@ -3,10 +3,13 @@ package security.cipher;
 import org.junit.Test;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigInteger;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.RSAPublicKeySpec;
+import java.util.Arrays;
 import java.util.Base64;
 
 import static org.junit.Assert.assertEquals;
@@ -37,6 +40,58 @@ public class TEATest {
         String plainText = "test";
         String encryptedText = encrypt(publicKey, plainText);
         assertEquals(plainText, decrypt(privateKey, encryptedText));
+    }
+
+    public static byte[] decryptBase64EncodedWithManagedIV(String encryptedText, String key) throws Exception {
+        byte[] cipherText = Base64.getDecoder().decode(encryptedText.getBytes());
+        byte[] keyBytes = Base64.getDecoder().decode(key.getBytes());
+        return decryptWithManagedIV(cipherText, keyBytes);
+    }
+
+    public static byte[] decryptWithManagedIV(byte[] cipherText, byte[] key) throws Exception{
+        byte[] initialVector = Arrays.copyOfRange(cipherText, 0, 16);
+        System.out.println(initialVector.toString());
+        byte[] trimmedCipherText = Arrays.copyOfRange(cipherText, 16, cipherText.length);
+        return decrypt(trimmedCipherText, key, initialVector);
+    }
+    private static final String cipherTransformation = "AES/CBC/PKCS5Padding";
+    private static final String aesEncryptionAlgorithm = "AES";
+    public static byte[] decrypt(byte[] cipherText, byte[] key, byte[] initialVector) throws Exception{
+        Cipher cipher = Cipher.getInstance(cipherTransformation);
+        SecretKeySpec secretKeySpecy = new SecretKeySpec(key, aesEncryptionAlgorithm);
+        IvParameterSpec ivParameterSpec = new IvParameterSpec(initialVector);
+        cipher.init(Cipher.DECRYPT_MODE, secretKeySpecy, ivParameterSpec);
+        cipherText = cipher.doFinal(cipherText);
+        return cipherText;
+    }
+
+    @Test
+    public void AES_암복호화_테스트() throws Exception {
+        //Cipher c = Cipher.getInstance("AES/CBC/PKCS7Padding");
+        //c.init(Cipher.ENCRYPT_MODE, );
+
+        String data = "CERcUfcNbCAkVxklXVpMqko2FqhE12iU6eldQ9jpFPUl+uVQXKDCXxtfPQ1hwt9A5fIbt60kdVgyFhb2V40z7w==";
+        String key = "mRMjHmlC1C+1L/Dkz8EJuw==";
+        key = Base64.getEncoder().encodeToString(key.getBytes());
+
+        String result = new String(decryptBase64EncodedWithManagedIV(data, key));
+        System.out.println("result : " + result);
+    }
+
+    /**
+     * 16진 문자열을 byte 배열로 변환한다.
+     */
+    public static byte[] hexToByteArray(String hex) {
+        if (hex == null || hex.length() % 2 != 0) {
+            return new byte[]{};
+        }
+
+        byte[] bytes = new byte[hex.length() / 2];
+        for (int i = 0; i < hex.length(); i += 2) {
+            byte value = (byte)Integer.parseInt(hex.substring(i, i + 2), 16);
+            bytes[(int) Math.floor(i / 2)] = value;
+        }
+        return bytes;
     }
 
     private String toHex (BigInteger value) {
@@ -84,5 +139,46 @@ public class TEATest {
         System.out.println("encrypted (cipherText) = " + cipherText);
 
         return cipherText;
+    }
+
+
+    // AES
+    public static String aesEncrypt(String key1, String key2, String value) {
+        try {
+            IvParameterSpec iv = new IvParameterSpec(key2.getBytes("UTF-8"));
+
+            SecretKeySpec skeySpec = new SecretKeySpec(key1.getBytes("UTF-8"),
+                    "AES");
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+            cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
+            byte[] encrypted = cipher.doFinal(value.getBytes());
+
+
+            String encryptedString = new String(Base64.getEncoder().encode(encrypted));
+            System.out.println("encrypted string:" + encryptedString);
+            return encryptedString;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
+    }
+
+    public static String aesdecrypt(String key1, String key2, String encrypted) {
+        try {
+            IvParameterSpec iv = new IvParameterSpec(key2.getBytes("UTF-8"));
+
+            SecretKeySpec skeySpec = new SecretKeySpec(key1.getBytes("UTF-8"),
+                    "AES");
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+            cipher.init(Cipher.DECRYPT_MODE, skeySpec, iv);
+
+            byte[] original = cipher.doFinal(Base64.getDecoder().decode(encrypted));
+            String decryptedString = new String(original);
+            return decryptedString;
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
     }
 }

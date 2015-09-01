@@ -20,7 +20,6 @@ import org.springframework.web.client.RestTemplate;
 @SpringApplicationConfiguration(classes = UserApplication.class)
 @WebIntegrationTest(randomPort = true)
 public class FrontControllerTest{
-/*
     @Value("${local.server.port}")
     private String targetPort;
 
@@ -35,12 +34,12 @@ public class FrontControllerTest{
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
     }
-
+/*
     @Test
     public void 회원가입_테스트() {
         HttpEntity<String> requestEntity = new HttpEntity<String>("parameter", headers);
         restTemplate.postForEntity(targetUrl +":"+targetPort, requestEntity, String.class);
 //        restTemplate.getForEntity(targetUrl + ":" + targetPort, String.class, requestEntity, String.class);
     }
-    */
+*/
 }
