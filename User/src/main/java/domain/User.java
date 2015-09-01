@@ -21,4 +21,9 @@ public class User {
 
     @OneToMany(fetch = FetchType.EAGER)
     List<Authority> authorities;
+
+    //TODO Regex Check
+    public boolean canRegister() {
+        return (email != null && password != null) ? true : false;
+    }
 }

@@ -28,4 +28,6 @@ public class WebConfig extends WebMvcConfigurationSupport {
         characterEncodingFilter.setForceEncoding(true);
         return characterEncodingFilter;
     }
+
+
 }
