@@ -2,19 +2,32 @@ package config;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.context.web.SpringBootServletInitializer;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
-//@SpringBootApplication
+
 @Configuration
 @Import({
         WebConfig.class
 })
+//@EnableWebMvc
 @EnableAutoConfiguration(exclude = {
         org.springframework.boot.autoconfigure.security.SecurityAutoConfiguration.class,
         org.springframework.boot.actuate.autoconfigure.ManagementSecurityAutoConfiguration.class
 })
-public class GatewayApplication {
+@SpringBootApplication
+public class GatewayApplication extends SpringBootServletInitializer {
+
+
+
+    @Override
+    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+        return application.sources(GatewayApplication.class);
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(GatewayApplication.class, args);

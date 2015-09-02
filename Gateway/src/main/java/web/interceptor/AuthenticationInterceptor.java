@@ -39,9 +39,11 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             String[] cookies = cookieString.split(";");
 
             for (String value : cookies) {
+                /*
                 if (value.startsWith(WebConfig.COOKIE_NAME)) {
                     return value.replace(WebConfig.COOKIE_NAME+"=", "");
                 }
+                */
             }
         } catch (Exception e) {
             log.error("getCookie Exception : {}", e.getMessage());

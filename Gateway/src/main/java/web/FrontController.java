@@ -29,8 +29,8 @@ public class FrontController {
     @Autowired
     Gson gson;
 
-    @RequestMapping(value ="/")
-    public String main() {
+    @RequestMapping(value ="/index")
+    public String index() {
         return "index";
     }
 

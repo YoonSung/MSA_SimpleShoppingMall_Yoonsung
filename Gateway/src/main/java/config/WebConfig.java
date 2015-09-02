@@ -8,8 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.filter.CharacterEncodingFilter;
 import org.springframework.web.servlet.ViewResolver;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
+import org.springframework.web.servlet.config.annotation.*;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import web.interceptor.AuthenticationInterceptor;
 
@@ -25,9 +24,32 @@ public class WebConfig extends WebMvcConfigurationSupport {
     public static final String COOKIE_NAME = "MSA_COOKIE";
     public static final String TEST_COOKIE_VALUE = "abcdefg";
 
+    public static final String RESOLVER_PREFIX = "/WEB-INF/jsp/";
+    public static final String RESOLVER_SUFFIX = ".jsp";
+
+    @Override
+    protected void configureViewResolvers(ViewResolverRegistry registry) {
+        registry.viewResolver(internalViewResolver());
+        super.configureViewResolvers(registry);
+    }
+
+    @Override
+    protected void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+        configurer.enable();
+    }
+
+    @Override
+    protected void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/stylesheet/*").addResourceLocations("/stylesheet/");
+        super.addResourceHandlers(registry);
+    }
+
     @Bean
     public ViewResolver internalViewResolver() {
-        return new InternalResourceViewResolver();
+        InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
+        viewResolver.setPrefix(RESOLVER_PREFIX);
+        viewResolver.setSuffix(RESOLVER_SUFFIX);
+        return viewResolver;
     }
 
     @Override
