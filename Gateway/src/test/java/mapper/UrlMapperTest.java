@@ -26,7 +26,9 @@ public class UrlMapperTest {
     @BeforeClass
     public static void initial() {
         urlArray = new String[]{
+                "/cart/{Long}/current",
                 "/carts/{Long}/current",
+                "/good/shoes/{Long}",
                 "/goods/shoes/{Long}"
         };
 
@@ -39,8 +41,8 @@ public class UrlMapperTest {
 
         //Data From DB, component server information
         Map<String, String> serverInfoMap = new HashMap<>();
-        serverInfoMap.put("carts", CART_SERVER_URL);
-        serverInfoMap.put("goods", GOOD_SERVER_URL);
+        serverInfoMap.put("cart", CART_SERVER_URL);
+        serverInfoMap.put("good", GOOD_SERVER_URL);
 
 
         urlAnalyzer = new UrlAnalyzer(serverInfoMap, urlList);
@@ -48,7 +50,13 @@ public class UrlMapperTest {
 
     @Test
     public void URL요청_테스트() throws InvalidUrlRequestException {
+        String requestUrl = "/cart/3/current";
+        assertEquals(CART_SERVER_URL + "/3/current", urlAnalyzer.convertUrl(requestUrl));
+    }
+
+    @Test
+    public void 복수형_네임스페이스_URL요청_테스트() throws InvalidUrlRequestException {
         String requestUrl = "/carts/3/current";
-ㅎ        assertEquals(CART_SERVER_URL + "/3/current", urlAnalyzer.convertUrl(requestUrl));
+        assertEquals(CART_SERVER_URL + "/3/current", urlAnalyzer.convertUrl(requestUrl));
     }
 }

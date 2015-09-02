@@ -11,7 +11,7 @@ import java.util.*;
 final class UrlMapper extends AbstractUrlMapper {
 
     //TODO carts와 같은 복수형 요청에 대한 처리를 추가
-    private final Map<String, String> serverInfoMap;
+    private Map<String, String> serverInfoMap;
 
     //TODO urlList는 권한까지 가져야하므로 Map으로 바뀌어야 한다
     //TODO 초기화 과정이 복잡하므로 factory method pattern으로 만든다
@@ -33,9 +33,21 @@ final class UrlMapper extends AbstractUrlMapper {
 
         Iterator<String> iterator = this.serverInfoMap.keySet().iterator();
 
+        Map<String, String> plularServerInfoMap = new HashMap<>();
+
         while(iterator.hasNext()) {
-            super.subUrlMap.put(iterator.next(), null);
+            String namespace = iterator.next();
+            //singular
+            super.subUrlMap.put(namespace, null);
+
+            //plural
+            String  pluralNamespace = namespace + "s";
+            plularServerInfoMap.put(pluralNamespace, serverInfoMap.get(namespace));
+
+            super.subUrlMap.put(pluralNamespace, null);
         }
+
+        serverInfoMap.putAll(plularServerInfoMap);
     }
 
     private void validateUrlList(List<Queue<String>> urlList) {
