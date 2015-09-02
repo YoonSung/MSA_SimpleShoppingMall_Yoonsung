@@ -1,17 +1,84 @@
 package mapper;
 
-import java.util.Queue;
-import java.util.Stack;
+import exception.InvalidUrlRequestException;
+
+import java.util.*;
 
 /**
  * Created by yoon on 15. 9. 2..
  */
 abstract class AbstractUrlMapper {
-    // queue에서 꺼내온 파싱 URL을 이용해 자기에게 해당하는 일을 수행, 하위 URL 처리를 위임
-    abstract Stack<String> delegate(Queue<String> queue);
 
-    // 자신의 url을 stack에 담는다
-    abstract Stack<String> buildUrl(Stack<String> stack);
+    // queue에서 꺼내온 파싱 URL을 이용해 자기에게 해당하는 일을 수행, 하위 URL 처리를 위임
+    public Stack<String> delegate(Queue<String> queue) throws InvalidUrlRequestException {
+        String currentUrl = queue.poll();
+
+        if (this.constraint != null) {
+            checkConstraint(currentUrl);
+
+        } else if (!subUrlMap.containsKey(currentUrl)) {
+            throw new InvalidUrlRequestException();
+        }
+
+        return buildUrl(subUrlMap.get(currentUrl).delegate(queue), currentUrl);
+    }
+
+    private void checkConstraint(String currentUrl) throws InvalidUrlRequestException {
+        if (!this.constraint.isValidRequest(currentUrl))
+            throw new InvalidUrlRequestException();
+    }
+
+    public Stack<String> buildUrl(Stack<String> stack, String currentUrl) {
+        stack.push(currentUrl);
+        return stack;
+    }
+
+    protected Map<String, AbstractUrlMapper> subUrlMap;
+
+    protected ConstraintType constraint;
+
+    AbstractUrlMapper() {
+        this.subUrlMap = new HashMap<>();
+    }
+
+    AbstractUrlMapper(Queue<String> urlQueue) {
+        addUrl(urlQueue);
+    }
+
+    protected final void addUrlList(List<Queue<String>> urlQueueList) {
+        //Traversal Queue List
+        for (Queue<String> urlQueue : urlQueueList) {
+            addUrl(urlQueue);
+        }
+    }
+
+    protected final void addUrl(Queue<String> urlQueue){
+        String currentUrl = getCurrentUrl(urlQueue);
+
+        //Check Current Parsing Word's value, and Add or Create
+        AbstractUrlMapper mapper = subUrlMap.get(currentUrl);
+
+        if (mapper == null && this.constraint == null) {
+            subUrlMap.put(currentUrl, createMapper(currentUrl, urlQueue));
+
+        } else {
+            mapper.addUrl(urlQueue);
+        }
+    }
+
+    private String getCurrentUrl(Queue<String> urlQueue) {
+        String currentUrl = urlQueue.poll();
+        if (currentUrl.contains("{") == true && currentUrl.contains("}"))
+            this.constraint = ConstraintType.create(currentUrl);
+
+        return currentUrl;
+    }
+
+    private AbstractUrlMapper createMapper(String currentUrl, Queue<String> urlQueue) {
+        return (currentUrl == null && this.constraint == null) ? new TerminalUrlMapper() : new DetailUrlMapper(urlQueue);
+    }
+
+    ;
 
     /*
     문제정의 :
@@ -62,7 +129,8 @@ abstract class AbstractUrlMapper {
 
                 (TerminalUrlMapper 클래스)
                     Redblack tree의 센티넬같은 존재.
-                    delegate 메서드안에서 stack을 만들어서 리턴
+                    delegate 메서드안에서 stack을 만들어서 리턴.
+                    권한을 체크
 
             알고리즘
                 -> 사용자로부터 url 요청

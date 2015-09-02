@@ -1,5 +1,6 @@
 package mapper;
 
+import exception.InvalidUrlRequestException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -20,7 +21,7 @@ public class UrlMapperTest {
 
     static String[] urlArray;
     static List<String> urlList;
-    static UrlMapper urlMapper;
+    static UrlAnalyzer urlAnalyzer;
 
     @BeforeClass
     public static void initial() {
@@ -38,16 +39,16 @@ public class UrlMapperTest {
 
         //Data From DB, component server information
         Map<String, String> serverInfoMap = new HashMap<>();
-        serverInfoMap.put("cart", CART_SERVER_URL);
-        serverInfoMap.put("good", GOOD_SERVER_URL);
+        serverInfoMap.put("carts", CART_SERVER_URL);
+        serverInfoMap.put("goods", GOOD_SERVER_URL);
 
 
-        urlMapper = new UrlMapper(serverInfoMap, urlList);
+        urlAnalyzer = new UrlAnalyzer(serverInfoMap, urlList);
     }
 
     @Test
-    public void URL요청_테스트() {
+    public void URL요청_테스트() throws InvalidUrlRequestException {
         String requestUrl = "/carts/3/current";
-        assertEquals(CART_SERVER_URL + requestUrl, urlMapper.getMappingUrl(requestUrl));
+        assertEquals(CART_SERVER_URL + requestUrl, urlAnalyzer.convertUrl(requestUrl));
     }
 }
