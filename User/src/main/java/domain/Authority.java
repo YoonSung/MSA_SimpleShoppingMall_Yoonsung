@@ -5,6 +5,8 @@ import javax.persistence.*;
 /**
  * Created by yoon on 15. 9. 1..
  */
+@Entity
+@Table
 public class Authority {
 
     enum Type {
