@@ -12,9 +12,9 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 @Configuration
 @Import({
-        WebConfig.class
+        WebConfig.class,
+        RequestMappingConfig.class
 })
-//@EnableWebMvc
 @EnableAutoConfiguration(exclude = {
         org.springframework.boot.autoconfigure.security.SecurityAutoConfiguration.class,
         org.springframework.boot.actuate.autoconfigure.ManagementSecurityAutoConfiguration.class
