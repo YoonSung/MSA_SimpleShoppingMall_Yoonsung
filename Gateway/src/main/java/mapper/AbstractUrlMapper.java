@@ -1,12 +1,17 @@
 package mapper;
 
-import org.springframework.stereotype.Component;
+import java.util.Queue;
+import java.util.Stack;
 
 /**
  * Created by yoon on 15. 9. 2..
  */
-@Component
-public class RequestMapper {
+abstract class AbstractUrlMapper {
+    // queue에서 꺼내온 파싱 URL을 이용해 자기에게 해당하는 일을 수행, 하위 URL 처리를 위임
+    abstract Stack<String> delegate(Queue<String> queue);
+
+    // 자신의 url을 stack에 담는다
+    abstract Stack<String> buildUrl(Stack<String> stack);
 
     /*
     문제정의 :
