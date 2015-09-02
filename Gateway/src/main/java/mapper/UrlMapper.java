@@ -64,6 +64,9 @@ final class UrlMapper extends AbstractUrlMapper {
         Queue<String> queue = new LinkedList<>();
 
         for (String word : urlParseArray) {
+            if (word.equals(""))
+                continue;
+
             queue.add(word);
         }
 
@@ -81,9 +84,12 @@ final class UrlMapper extends AbstractUrlMapper {
 
         while(!stack.empty()) {
             sb.append(stack.pop());
+            sb.append("/");
         }
 
-        return sb.toString();
+        String resultString = sb.toString();
+
+        return resultString.substring(0, resultString.length()-1);
     }
 
     @Override

@@ -16,8 +16,8 @@ import static org.junit.Assert.assertEquals;
  */
 public class UrlMapperTest {
 
-    static final String CART_SERVER_URL = "http://cart.localhost.com";
-    static final String GOOD_SERVER_URL = "http://good.localhost.com";
+    static final String CART_SERVER_URL = "http://carts.localhost.com";
+    static final String GOOD_SERVER_URL = "http://goods.localhost.com";
 
     static String[] urlArray;
     static List<String> urlList;
@@ -49,6 +49,6 @@ public class UrlMapperTest {
     @Test
     public void URL요청_테스트() throws InvalidUrlRequestException {
         String requestUrl = "/carts/3/current";
-        assertEquals(CART_SERVER_URL + requestUrl, urlAnalyzer.convertUrl(requestUrl));
+ㅎ        assertEquals(CART_SERVER_URL + "/3/current", urlAnalyzer.convertUrl(requestUrl));
     }
 }

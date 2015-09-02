@@ -15,7 +15,7 @@ abstract class AbstractUrlMapper {
 
         if (this.constraint != null) {
             checkConstraint(currentUrl);
-
+            return buildUrl(subUrlMap.get(this.constraint.getStringValue()).delegate(queue), currentUrl);
         } else if (!subUrlMap.containsKey(currentUrl)) {
             throw new InvalidUrlRequestException();
         }
@@ -29,7 +29,8 @@ abstract class AbstractUrlMapper {
     }
 
     public Stack<String> buildUrl(Stack<String> stack, String currentUrl) {
-        stack.push(currentUrl);
+        if (currentUrl != null)
+            stack.push(currentUrl);
         return stack;
     }
 
@@ -42,6 +43,8 @@ abstract class AbstractUrlMapper {
     }
 
     AbstractUrlMapper(Queue<String> urlQueue) {
+        this();
+
         addUrl(urlQueue);
     }
 
@@ -58,7 +61,7 @@ abstract class AbstractUrlMapper {
         //Check Current Parsing Word's value, and Add or Create
         AbstractUrlMapper mapper = subUrlMap.get(currentUrl);
 
-        if (mapper == null && this.constraint == null) {
+        if (mapper == null) {
             subUrlMap.put(currentUrl, createMapper(currentUrl, urlQueue));
 
         } else {
@@ -68,8 +71,10 @@ abstract class AbstractUrlMapper {
 
     private String getCurrentUrl(Queue<String> urlQueue) {
         String currentUrl = urlQueue.poll();
-        if (currentUrl.contains("{") == true && currentUrl.contains("}"))
+        if (currentUrl != null && currentUrl.contains("{") == true && currentUrl.contains("}")) {
             this.constraint = ConstraintType.create(currentUrl);
+        }
+
 
         return currentUrl;
     }
