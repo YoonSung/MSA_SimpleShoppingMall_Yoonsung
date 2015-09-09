@@ -13,12 +13,12 @@ import java.util.Stack;
 class TerminalUrlMapper extends AbstractUrlMapper {
 
     @Override
-    public Stack<String> delegate(Queue<String> queue) throws InvalidUrlRequestException {
+    Stack<String> delegate(Queue<String> queue) throws InvalidUrlRequestException {
         return buildUrl(null, null);
     }
 
     @Override
-    public Stack<String> buildUrl(Stack<String> stack, String currentUrl) {
+    Stack<String> buildUrl(Stack<String> stack, String currentUrl) {
         return new Stack<>();
     }
 }

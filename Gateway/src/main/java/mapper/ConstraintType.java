@@ -20,11 +20,11 @@ enum ConstraintType {
         this.convertable = convertable;
     }
 
-    public String getStringValue() {
+    String getStringValue() {
         return stringValue;
     }
 
-    public static ConstraintType create(String word) {
+    static ConstraintType create(String word) {
         for (ConstraintType type : ConstraintType.values()) {
             if (type.getStringValue().equals(word))
                 return type;
@@ -33,7 +33,7 @@ enum ConstraintType {
         throw new IllegalArgumentException("Constraint Type is miss match");
     }
 
-    public boolean isValidRequest(String urlParameter) {
+    boolean isValidRequest(String urlParameter) {
         try {
             this.convertable.casting(urlParameter);
         } catch (Exception e) {

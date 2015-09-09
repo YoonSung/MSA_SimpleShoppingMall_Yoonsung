@@ -15,7 +15,7 @@ final class UrlMapper extends AbstractUrlMapper {
 
     //TODO urlList는 권한까지 가져야하므로 Map으로 바뀌어야 한다
     //TODO 초기화 과정이 복잡하므로 factory method pattern으로 만든다
-    public UrlMapper(Map<String, String> serverInfoMap, List<String> urlList) {
+    UrlMapper(Map<String, String> serverInfoMap, List<String> urlList) {
         super();
 
         this.serverInfoMap = serverInfoMap;
@@ -37,6 +37,7 @@ final class UrlMapper extends AbstractUrlMapper {
 
         while(iterator.hasNext()) {
             String namespace = iterator.next();
+
             //singular
             super.subUrlMap.put(namespace, null);
 
@@ -85,7 +86,7 @@ final class UrlMapper extends AbstractUrlMapper {
         return queue;
     }
 
-    public String delegate(String requestUrl) throws InvalidUrlRequestException {
+    String delegate(String requestUrl) throws InvalidUrlRequestException {
         Queue<String> queue = convertQueue(requestUrl);
         return stackToString(delegate(queue));
     }

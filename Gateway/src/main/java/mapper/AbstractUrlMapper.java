@@ -9,8 +9,20 @@ import java.util.*;
  */
 abstract class AbstractUrlMapper {
 
+    protected Map<String, AbstractUrlMapper> subUrlMap;
+    protected ConstraintType constraint;
+
+    AbstractUrlMapper() {
+        this.subUrlMap = new HashMap<>();
+    }
+
+    AbstractUrlMapper(Queue<String> urlQueue) {
+        this();
+        addUrl(urlQueue);
+    }
+
     // queue에서 꺼내온 파싱 URL을 이용해 자기에게 해당하는 일을 수행, 하위 URL 처리를 위임
-    public Stack<String> delegate(Queue<String> queue) throws InvalidUrlRequestException {
+    Stack<String> delegate(Queue<String> queue) throws InvalidUrlRequestException {
         String currentUrl = queue.poll();
 
         if (this.constraint != null) {
@@ -28,24 +40,10 @@ abstract class AbstractUrlMapper {
             throw new InvalidUrlRequestException();
     }
 
-    public Stack<String> buildUrl(Stack<String> stack, String currentUrl) {
+    Stack<String> buildUrl(Stack<String> stack, String currentUrl) {
         if (currentUrl != null)
             stack.push(currentUrl);
         return stack;
-    }
-
-    protected Map<String, AbstractUrlMapper> subUrlMap;
-
-    protected ConstraintType constraint;
-
-    AbstractUrlMapper() {
-        this.subUrlMap = new HashMap<>();
-    }
-
-    AbstractUrlMapper(Queue<String> urlQueue) {
-        this();
-
-        addUrl(urlQueue);
     }
 
     protected final void addUrlList(List<Queue<String>> urlQueueList) {

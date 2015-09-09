@@ -27,6 +27,7 @@ public class UrlMapperTest {
     public static void initial() {
         urlArray = new String[]{
                 "/cart/{Long}/current",
+                "/cart/{Long}/current/comment/{String}",
                 "/carts/{Long}/current",
                 "/good/shoes/{Long}",
                 "/goods/shoes/{Long}"
@@ -50,8 +51,11 @@ public class UrlMapperTest {
 
     @Test
     public void URL요청_테스트() throws InvalidUrlRequestException {
-        String requestUrl = "/cart/3/current";
-        assertEquals(CART_SERVER_URL + "/3/current", urlAnalyzer.convertUrl(requestUrl));
+        String requestUrl1 = "/cart/3/current";
+        assertEquals(CART_SERVER_URL + "/3/current", urlAnalyzer.convertUrl(requestUrl1));
+
+        String requestUrl2 = "/cart/3/current/comment/테스트요청";
+        assertEquals(CART_SERVER_URL + "/3/current/comment/테스트요청", urlAnalyzer.convertUrl(requestUrl2));
     }
 
     @Test
